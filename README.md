@@ -5,7 +5,7 @@ Includes a full ETL pipeline for ingestion, cleaning, and normalization of legac
 
 ## Stack
 
-- **Python 3.12** + **FastAPI** — web framework and request validation
+- **Python 3.13** + **FastAPI** — web framework and request validation
 - **SQLAlchemy 2.0** — ORM and Core for bulk inserts
 - **SQLite** — relational database (portable to SQL Server)
 - **pandas** — data processing and cleaning
