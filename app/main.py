@@ -14,11 +14,15 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 from app.config import settings
 from app.database import init_db
 from app.exceptions.handlers import register_exception_handlers
 from app.routers import alarms, etl, metrics
+from app.utils.rate_limit import limiter
 
 
 @asynccontextmanager
@@ -41,6 +45,11 @@ def create_app() -> FastAPI:
         redoc_url="/redoc",
         lifespan=lifespan,
     )
+
+    # Rate limiting: keyed by remote IP, enforced per-route via @limiter.limit()
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+    app.add_middleware(SlowAPIMiddleware)
 
     # CORS: allow frontend dev server and Docker nginx
     app.add_middleware(

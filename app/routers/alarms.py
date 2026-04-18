@@ -1,19 +1,22 @@
 from datetime import datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.schemas.alarm import AlarmFilters, AlarmRead, CriticalityEnum
 from app.schemas.common import Meta, PaginatedResponse
 from app.services.alarm_service import AlarmService
+from app.utils.rate_limit import limiter
 
 router = APIRouter(prefix="/alarms", tags=["Alarms"])
 
 
 @router.get("", response_model=PaginatedResponse[AlarmRead])
+@limiter.limit("60/minute")
 def list_alarms(
+    request: Request,
     start_date: Annotated[str | None, Query(description="ISO 8601 start datetime")] = None,
     end_date: Annotated[str | None, Query(description="ISO 8601 end datetime")] = None,
     criticality: Annotated[list[CriticalityEnum] | None, Query(description="Filter by criticality")] = None,
@@ -29,6 +32,7 @@ def list_alarms(
     - **criticality**: repeatable, e.g. `?criticality=CRITICAL&criticality=HIGH`
     - **tag**: partial match on tag name
     - **page / size**: pagination
+    - Rate limit: 60 requests/minute per IP
     """
     parsed_start = None
     parsed_end = None
@@ -59,8 +63,9 @@ def list_alarms(
 
 
 @router.get("/{alarm_id}", response_model=AlarmRead)
-def get_alarm(alarm_id: int, db: Session = Depends(get_db)):
-    """Retrieve a single alarm by ID."""
+@limiter.limit("60/minute")
+def get_alarm(request: Request, alarm_id: int, db: Session = Depends(get_db)):
+    """Retrieve a single alarm by ID. Rate limit: 60/minute per IP."""
     service = AlarmService(db)
     alarm = service.get_alarm_by_id(alarm_id)
     if not alarm:
