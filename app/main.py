@@ -5,9 +5,9 @@ Uses lifespan context manager (FastAPI >= 0.93) instead of deprecated
 on_event decorators, ensuring startup/shutdown logic is type-safe.
 
 Routers are registered incrementally as features are added:
-  - alarms  → feat/api-alarms
-  - metrics → feat/api-metrics
-  - etl     → feat/api-etl-trigger
+  - alarms  ✓ feat/api-alarms
+  - metrics ✓ feat/api-metrics
+  - etl     ✓ feat/api-etl-trigger
 """
 
 from contextlib import asynccontextmanager
@@ -18,7 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import init_db
 from app.exceptions.handlers import register_exception_handlers
-from app.routers import alarms, metrics
+from app.routers import alarms, etl, metrics
 
 
 @asynccontextmanager
@@ -60,6 +60,7 @@ def create_app() -> FastAPI:
 
     app.include_router(alarms.router, prefix=settings.API_PREFIX)
     app.include_router(metrics.router, prefix=settings.API_PREFIX)
+    app.include_router(etl.router, prefix=settings.API_PREFIX)
 
     @app.get("/health", tags=["Health"])
     def health_check():
