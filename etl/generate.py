@@ -6,18 +6,18 @@ that simulate real-world SCADA export conditions. All issues are documented belo
 and in README.md.
 
 INTENTIONAL QUALITY ISSUES INTRODUCED:
-  Issue 01 — NULL criticality         (~8%  of rows)
-  Issue 02 — NULL value               (~12% of rows)
-  Issue 03 — NULL tag                 (~3%  of rows)
-  Issue 04 — NULL description         (~15% of rows)
-  Issue 05 — Mixed datetime formats   (4 distinct formats distributed across rows)
+  Issue 01 — NULL criticality         
+  Issue 02 — NULL value               
+  Issue 03 — NULL tag                 
+  Issue 04 — NULL description         
+  Issue 05 — Mixed datetime formats   
   Issue 06 — Mixed criticality casing (critical, CRITICAL, Critical, Crit, crit)
   Issue 07 — Boolean status variants  (true, TRUE, 1, yes, active, ACTIVE, 0, false)
-  Issue 08 — Exact duplicate rows     (~5%  of rows duplicated)
-  Issue 09 — Near-duplicate rows      (~3%  same alarm, different source field)
-  Issue 10 — Value with embedded unit ("45.2 psi", "300 rpm", "1.3 bar")
+  Issue 08 — Exact duplicate rows     
+  Issue 09 — Near-duplicate rows      
+  Issue 10 — Value with embedded unit 
   Issue 11 — Unparseable timestamps   (random garbage strings as timestamp)
-  Issue 12 — Future timestamps        (~2%  of rows beyond current date)
+  Issue 12 — Future timestamps        
   Issue 13 — Tag name inconsistencies (FIC-101, FIC101, fic-101, FIC_101, " FIC-101")
   Issue 14 — Leading/trailing whitespace in string fields
 """
@@ -37,10 +37,6 @@ except ImportError:
     fake = None
 
 rng = np.random.default_rng(42)  # reproducible seed
-
-# ---------------------------------------------------------------------------
-# Domain configuration
-# ---------------------------------------------------------------------------
 
 TAGS = [
     # (name, area, system)
@@ -117,9 +113,6 @@ ALARM_DESCRIPTIONS = [
     "Safety interlock activated",
 ]
 
-# ---------------------------------------------------------------------------
-# Timestamp format variants (Issue 05)
-# ---------------------------------------------------------------------------
 START_DATE = datetime(2023, 1, 1)
 END_DATE = datetime(2024, 6, 30)
 
@@ -137,11 +130,6 @@ def _format_timestamp(dt: datetime, fmt_index: int) -> str:
         str(int(dt.timestamp())),                  # Unix epoch string
     ]
     return formats[fmt_index % 4]
-
-
-# ---------------------------------------------------------------------------
-# Main generator
-# ---------------------------------------------------------------------------
 
 def generate_dataset(n: int = 10_000, output_path: str | None = None) -> pd.DataFrame:
     """
@@ -188,9 +176,6 @@ def generate_dataset(n: int = 10_000, output_path: str | None = None) -> pd.Data
 
     df = pd.DataFrame(rows)
 
-    # -----------------------------------------------------------------------
-    # Inject data quality issues
-    # -----------------------------------------------------------------------
     df = _inject_null_criticality(df)       # Issue 01
     df = _inject_null_value(df)             # Issue 02
     df = _inject_null_tag(df)               # Issue 03
@@ -233,9 +218,6 @@ def _generate_value(prefix: str) -> float:
     }
     lo, hi = ranges.get(prefix, (0.0, 100.0))
     return round(float(rng.uniform(lo, hi)), 4)
-
-
-# --- Individual issue injectors ---
 
 def _inject_null_criticality(df: pd.DataFrame) -> pd.DataFrame:
     """Issue 01: ~8% of criticality values set to null."""
