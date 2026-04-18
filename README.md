@@ -35,22 +35,22 @@ This system:
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│  FastAPI REST API                                             │
+│  FastAPI REST API                                            │
 │                                                              │
-│  ┌─────────────┐  ┌──────────────────┐  ┌─────────────────┐ │
-│  │   Routers   │  │    Services      │  │  ETL Pipeline   │ │
-│  │  /alarms    │→ │  AlarmService    │  │ generate        │ │
-│  │  /metrics   │→ │  MetricsService  │  │ → ingest        │ │
-│  │  /etl       │→ │                  │  │ → clean         │ │
-│  └─────────────┘  └──────────────────┘  │ → normalize     │ │
-│                           │             │ → load          │ │
-│                           │             └────────┬────────┘ │
-└───────────────────────────┼──────────────────────┼──────────┘
+│  ┌─────────────┐  ┌──────────────────┐  ┌─────────────────┐  │
+│  │   Routers   │  │    Services      │  │  ETL Pipeline   │  │
+│  │  /alarms    │→ │  AlarmService    │  │ generate        │  │
+│  │  /metrics   │→ │  MetricsService  │  │ → ingest        │  │
+│  │  /etl       │→ │                  │  │ → clean         │  │
+│  └─────────────┘  └──────────────────┘  │ → normalize     │  │
+│                           │             │ → load          │  │
+│                           │             └────────┬────────┘  │
+└───────────────────────────┼──────────────────────┼───────────┘
                             ▼                      ▼
                    ┌──────────────────────────────────┐
-                   │  SQLite (SQL Server-portable)     │
-                   │  tables: alarms, tags             │
-                   │  5 indexes on alarms              │
+                   │  SQLite (SQL Server-portable)    │
+                   │  tables: alarms, tags            │
+                   │  5 indexes on alarms             │
                    └──────────────────────────────────┘
 ```
 
