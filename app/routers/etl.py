@@ -1,15 +1,17 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.schemas.etl import ETLRunResponse
+from app.utils.rate_limit import limiter
 from etl import pipeline
 
 router = APIRouter(prefix="/etl", tags=["ETL"])
 
 
 @router.post("/run", response_model=ETLRunResponse)
-def run_etl(db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def run_etl(request: Request, db: Session = Depends(get_db)):
     """
     Trigger the ETL pipeline synchronously.
 
@@ -17,6 +19,7 @@ def run_etl(db: Session = Depends(get_db)):
     Returns full statistics about the run.
 
     Returns 409 if a pipeline run is already in progress.
+    Rate limit: 5/minute per IP — pipeline is expensive and should be rare.
     """
     if pipeline.is_running():
         raise HTTPException(

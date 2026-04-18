@@ -1,0 +1,320 @@
+{
+  "info": {
+    "_postman_id": "scada-alarm-api-v1",
+    "name": "SCADA Alarm System API",
+    "description": "Complete API collection for the SCADA industrial alarm system.\n\nSetup:\n1. Start the API (Docker or local — see README)\n2. POST /api/v1/etl/run to populate the database\n3. Use any other endpoint\n\nThe `base_url` variable is pre-set to http://localhost:8000.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "api_prefix",
+      "value": "/api/v1",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Verify the API is running. Returns {status: ok, version}."
+          }
+        }
+      ]
+    },
+    {
+      "name": "ETL",
+      "item": [
+        {
+          "name": "Run ETL Pipeline",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/etl/run",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["etl", "run"]
+            },
+            "description": "Trigger the full ETL pipeline.\n\nReads raw CSV → cleans → normalizes → bulk-loads to DB.\nReturns full run statistics (raw_count, loaded_count, rejected_count, duration_seconds, etc.).\n\nReturns 409 if pipeline is already running.\nRate limit: 5/minute per IP."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Alarms",
+      "item": [
+        {
+          "name": "List All Alarms",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/alarms?page=1&size=50",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["alarms"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "size", "value": "50" }
+              ]
+            },
+            "description": "Paginated list of all alarms. Default: page=1, size=50."
+          }
+        },
+        {
+          "name": "Filter by Criticality — CRITICAL",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/alarms?criticality=CRITICAL&page=1&size=50",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["alarms"],
+              "query": [
+                { "key": "criticality", "value": "CRITICAL" },
+                { "key": "page", "value": "1" },
+                { "key": "size", "value": "50" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Filter by Multiple Criticality — CRITICAL + HIGH",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/alarms?criticality=CRITICAL&criticality=HIGH",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["alarms"],
+              "query": [
+                { "key": "criticality", "value": "CRITICAL" },
+                { "key": "criticality", "value": "HIGH" }
+              ]
+            },
+            "description": "criticality is repeatable — pass multiple values for an IN filter."
+          }
+        },
+        {
+          "name": "Filter by Tag (partial match)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/alarms?tag=FIC",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["alarms"],
+              "query": [{ "key": "tag", "value": "FIC" }]
+            },
+            "description": "Case-insensitive partial match on tag name. Returns alarms for FIC-101, FIC-102, etc."
+          }
+        },
+        {
+          "name": "Filter by Date Range",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/alarms?start_date=2023-01-01T00:00:00&end_date=2023-06-30T23:59:59",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["alarms"],
+              "query": [
+                { "key": "start_date", "value": "2023-01-01T00:00:00" },
+                { "key": "end_date", "value": "2023-06-30T23:59:59" }
+              ]
+            },
+            "description": "ISO 8601 format. start_date must be strictly before end_date."
+          }
+        },
+        {
+          "name": "Combined Filters",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/alarms?start_date=2023-01-01T00:00:00&end_date=2024-01-01T00:00:00&criticality=CRITICAL&criticality=HIGH&tag=FIC&page=1&size=25",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["alarms"],
+              "query": [
+                { "key": "start_date", "value": "2023-01-01T00:00:00" },
+                { "key": "end_date", "value": "2024-01-01T00:00:00" },
+                { "key": "criticality", "value": "CRITICAL" },
+                { "key": "criticality", "value": "HIGH" },
+                { "key": "tag", "value": "FIC" },
+                { "key": "page", "value": "1" },
+                { "key": "size", "value": "25" }
+              ]
+            },
+            "description": "All filters combined. AND logic between different filter types."
+          }
+        },
+        {
+          "name": "Get Single Alarm by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/alarms/1",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["alarms", "1"]
+            },
+            "description": "Returns a single alarm object or 404."
+          }
+        },
+        {
+          "name": "ERROR — Nonexistent Alarm (404)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/alarms/999999",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["alarms", "999999"]
+            },
+            "description": "Expected: 404 Not Found."
+          }
+        },
+        {
+          "name": "ERROR — Invalid Criticality (422)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/alarms?criticality=INVALID",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["alarms"],
+              "query": [{ "key": "criticality", "value": "INVALID" }]
+            },
+            "description": "Expected: 422 Unprocessable Entity — enum validation failure."
+          }
+        },
+        {
+          "name": "ERROR — Invalid Date Format (400)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/alarms?start_date=not-a-date",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["alarms"],
+              "query": [{ "key": "start_date", "value": "not-a-date" }]
+            },
+            "description": "Expected: 400 Bad Request — date string cannot be parsed."
+          }
+        },
+        {
+          "name": "ERROR — start_date after end_date (422)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/alarms?start_date=2024-01-10T00:00:00&end_date=2024-01-01T00:00:00",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["alarms"],
+              "query": [
+                { "key": "start_date", "value": "2024-01-10T00:00:00" },
+                { "key": "end_date", "value": "2024-01-01T00:00:00" }
+              ]
+            },
+            "description": "Expected: 422 — model_validator rejects start >= end."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Metrics",
+      "item": [
+        {
+          "name": "Top Tags — default limit 10",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/metrics/top-tags",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["metrics", "top-tags"]
+            },
+            "description": "Top 10 tags by total alarm count."
+          }
+        },
+        {
+          "name": "Top Tags — limit 5",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/metrics/top-tags?limit=5",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["metrics", "top-tags"],
+              "query": [{ "key": "limit", "value": "5" }]
+            }
+          }
+        },
+        {
+          "name": "By Criticality",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/metrics/by-criticality",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["metrics", "by-criticality"]
+            },
+            "description": "Count and percentage per criticality level. Percentages sum to 100."
+          }
+        },
+        {
+          "name": "Timeline — Daily",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/metrics/timeline?interval=day",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["metrics", "timeline"],
+              "query": [{ "key": "interval", "value": "day" }]
+            },
+            "description": "Alarm counts bucketed by day. Includes critical_count and high_count per bucket."
+          }
+        },
+        {
+          "name": "Timeline — Hourly",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/metrics/timeline?interval=hour",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["metrics", "timeline"],
+              "query": [{ "key": "interval", "value": "hour" }]
+            }
+          }
+        },
+        {
+          "name": "Timeline — Filtered Date Range",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/metrics/timeline?interval=day&start_date=2023-01-01T00:00:00&end_date=2023-06-30T23:59:59",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["metrics", "timeline"],
+              "query": [
+                { "key": "interval", "value": "day" },
+                { "key": "start_date", "value": "2023-01-01T00:00:00" },
+                { "key": "end_date", "value": "2023-06-30T23:59:59" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "ERROR — Invalid Timeline Interval (422)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/metrics/timeline?interval=week",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["metrics", "timeline"],
+              "query": [{ "key": "interval", "value": "week" }]
+            },
+            "description": "Expected: 422 — only 'hour' and 'day' are valid intervals."
+          }
+        }
+      ]
+    }
+  ]
+}
