@@ -1,0 +1,33 @@
+# Git
+.git/
+.gitignore
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+ENV/
+
+# Runtime data (written to Docker volume at runtime, not baked into image)
+data/*.db
+data/*.db-shm
+data/*.db-wal
+data/*.lock
+data/raw_alarms.csv
+
+# Test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE
+.vscode/
+.idea/
+
+# Env file (secrets — never bake into image)
+.env
+
+# Docs
+*.md
