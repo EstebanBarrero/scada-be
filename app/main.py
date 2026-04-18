@@ -18,6 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import init_db
 from app.exceptions.handlers import register_exception_handlers
+from app.routers import alarms
 
 
 @asynccontextmanager
@@ -56,6 +57,8 @@ def create_app() -> FastAPI:
     )
 
     register_exception_handlers(app)
+
+    app.include_router(alarms.router, prefix=settings.API_PREFIX)
 
     @app.get("/health", tags=["Health"])
     def health_check():
