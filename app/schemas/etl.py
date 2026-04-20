@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel
 
@@ -9,6 +9,26 @@ class ETLStatus(str, Enum):
     success = "success"
     partial = "partial"
     failed = "failed"
+
+
+class DatasetInfoResponse(BaseModel):
+    exists: bool
+    total_rows: int
+    file_size_kb: float
+    generated_at: Optional[datetime]
+    # Quality issues detected in the raw CSV
+    null_criticality: int
+    null_tag: int
+    null_value: int
+    null_description: int
+    exact_duplicates: int
+    mixed_timestamp_formats: bool
+
+
+class GenerateDatasetResponse(BaseModel):
+    total_rows: int
+    file_size_kb: float
+    output_path: str
 
 
 class ETLRunResponse(BaseModel):
