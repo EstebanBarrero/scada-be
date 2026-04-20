@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "scada-alarm-api-v1",
     "name": "SCADA Alarm System API",
-    "description": "Complete API collection for the SCADA industrial alarm system.\n\nSetup:\n1. Start the API (Docker or local — see README)\n2. POST /api/v1/etl/run to populate the database\n3. Use any other endpoint\n\nThe `base_url` variable is pre-set to http://localhost:8000.",
+    "description": "Complete API collection for the SCADA industrial alarm system.\n\nSetup:\n1. Start the API (Docker or local — see README)\n2. POST /api/v1/etl/generate  — generate raw CSV dataset\n3. GET  /api/v1/etl/dataset-info — inspect data quality before ETL\n4. POST /api/v1/etl/run         — clean + normalize + load into DB\n5. Use Alarms / Metrics endpoints\n\nThe `base_url` variable is pre-set to http://localhost:8000.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -39,6 +39,30 @@
       "name": "ETL",
       "item": [
         {
+          "name": "Generate Dataset",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/etl/generate",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["etl", "generate"]
+            },
+            "description": "Generate (or re-generate) the synthetic raw alarm CSV dataset.\n\nRuns the dataset generator with ETL_DATASET_SIZE rows and saves to ETL_DATA_PATH (data/raw_alarms.csv).\nDoes NOT load data into the database — use POST /etl/run for that.\n\nReturns: total_rows, file_size_kb, output_path.\nRate limit: 5/minute per IP."
+          }
+        },
+        {
+          "name": "Dataset Info (before ETL)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/etl/dataset-info",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["etl", "dataset-info"]
+            },
+            "description": "Inspect quality statistics of the raw CSV dataset before running ETL.\n\nReturns: exists, total_rows, file_size_kb, generated_at, null counts per column, exact_duplicates, mixed_timestamp_formats.\n\nReturns exists=false with all zeros if the CSV has not been generated yet."
+          }
+        },
+        {
           "name": "Run ETL Pipeline",
           "request": {
             "method": "POST",
@@ -47,7 +71,19 @@
               "host": ["{{base_url}}{{api_prefix}}"],
               "path": ["etl", "run"]
             },
-            "description": "Trigger the full ETL pipeline.\n\nReads raw CSV → cleans → normalizes → bulk-loads to DB.\nReturns full run statistics (raw_count, loaded_count, rejected_count, duration_seconds, etc.).\n\nReturns 409 if pipeline is already running.\nRate limit: 5/minute per IP."
+            "description": "Trigger the full ETL pipeline.\n\nReads raw CSV → cleans → normalizes → bulk-loads to DB.\nReturns full run statistics (raw_count, loaded_count, rejected_count, duplicate_count, null_imputed_count, type_coerced_count, tags_created, tags_reused, duration_seconds, errors).\n\nReturns 404 if dataset CSV has not been generated yet (run POST /etl/generate first).\nReturns 409 if pipeline is already running.\nRate limit: 5/minute per IP."
+          }
+        },
+        {
+          "name": "ERROR — Run ETL without dataset (404)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/etl/run",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["etl", "run"]
+            },
+            "description": "Expected: 404 — triggers only when data/raw_alarms.csv does not exist.\nDelete the CSV file first to reproduce this error."
           }
         }
       ]

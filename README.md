@@ -252,15 +252,64 @@ Count + percentage per criticality level. Percentages sum to 100.
 #### `GET /metrics/timeline?interval=day`
 Alarm counts bucketed by `hour` or `day`. Optional `start_date` / `end_date`. Returns `critical_count` and `high_count` per bucket.
 
+#### `GET /etl/dataset-info`
+Returns quality statistics about the raw CSV dataset **before ETL runs**. Used to inspect the "before" state.
+
+```json
+{
+  "exists": true,
+  "total_rows": 10000,
+  "file_size_kb": 1423.5,
+  "generated_at": "2024-01-15T10:30:00",
+  "null_criticality": 802,
+  "null_tag": 298,
+  "null_value": 1201,
+  "null_description": 1498,
+  "exact_duplicates": 498,
+  "mixed_timestamp_formats": true
+}
+```
+
+Returns `exists: false` with all zeros if the CSV has not been generated yet.
+
+#### `POST /etl/generate`
+Generate (or re-generate) the synthetic raw alarm CSV dataset. Runs the dataset generator with `ETL_DATASET_SIZE` rows and saves to `ETL_DATA_PATH`. Does **not** load data into the database. Rate limit: 5/minute.
+
+```json
+{
+  "total_rows": 10000,
+  "file_size_kb": 1423.5,
+  "output_path": "data/raw_alarms.csv"
+}
+```
+
 #### `POST /etl/run`
-Trigger the ETL pipeline. Returns full run statistics. Returns 409 if already running.
+Trigger the ETL pipeline. Returns full run statistics. Returns 409 if already running or 404 if the dataset has not been generated yet. Rate limit: 5/minute.
+
+```json
+{
+  "status": "success",
+  "raw_count": 10000,
+  "loaded_count": 9132,
+  "duplicate_count": 498,
+  "rejected_count": 370,
+  "null_imputed_count": 2602,
+  "type_coerced_count": 1004,
+  "tags_created": 25,
+  "tags_reused": 0,
+  "duration_seconds": 1.84,
+  "errors": [],
+  "started_at": "2024-01-15T10:31:00",
+  "completed_at": "2024-01-15T10:31:01"
+}
+```
 
 ### Error Responses
 
 | Code | Condition |
 |---|---|
 | 400 | Malformed input (invalid date string) |
-| 404 | Resource not found |
+| 404 | Resource not found / dataset CSV not generated yet |
 | 409 | ETL already running |
 | 422 | Validation failed (enum, range, date order) |
 | 500 | Unexpected server error (no internals exposed) |
@@ -308,11 +357,17 @@ docker compose up --build
 # Docs:     http://localhost:8000/docs
 # ReDoc:    http://localhost:8000/redoc
 
-# Trigger ETL to load data (first run):
+# 1. Generate raw dataset
+curl -X POST http://localhost:8000/api/v1/etl/generate
+
+# 2. (Optional) Inspect data quality before ETL
+curl http://localhost:8000/api/v1/etl/dataset-info
+
+# 3. Run ETL to clean + load into DB
 curl -X POST http://localhost:8000/api/v1/etl/run
 ```
 
-The dataset is pre-generated at build time (`etl/generate.py` runs during `docker build`). The named volume `scada_data` persists the SQLite database across container restarts.
+Data is stored in `./data/` on your host machine (bind mount). Both the SQLite database (`scada.db`) and the generated CSV (`raw_alarms.csv`) are visible locally and persist across container restarts.
 
 ### Option B: Local Development
 
@@ -327,14 +382,18 @@ pip install -r requirements.txt
 # 3. Copy environment file
 cp .env.example .env
 
-# 4. Generate dataset
-python etl/generate.py data/raw_alarms.csv
+# 4. Generate raw dataset (two options — pick one)
+python -m etl.generate                                   # CLI (saves to data/raw_alarms.csv)
+
 
 # 5. Start API
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
-# 6. Trigger ETL (separate terminal or Postman)
+# 6. Trigger ETL to clean + load data into DB
 curl -X POST http://localhost:8000/api/v1/etl/run
+
+# 7. (Optional) Inspect raw dataset quality before ETL
+curl http://localhost:8000/api/v1/etl/dataset-info
 ```
 
 API docs available at `http://localhost:8000/docs` (Swagger UI).
